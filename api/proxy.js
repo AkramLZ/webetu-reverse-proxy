@@ -33,7 +33,8 @@ export default async function handler(req, res) {
             headers: fetchHeaders,
             body: ['GET', 'HEAD'].includes(method)
                 ? undefined
-                : req
+                : req,
+            duplex: 'half'
         });
 
         res.status(proxyRes.status);
