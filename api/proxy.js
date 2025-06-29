@@ -1,5 +1,3 @@
-import { pipeline, Readable } from 'stream';
-
 /**
  * Handle incoming requests to accept CORS
  */
@@ -52,17 +50,8 @@ export default async function handler(req, res) {
 
         // Pipe response body directly to client
         if (proxyRes.body) {
-            const nodeStream = Readable.fromWeb(proxyRes.body);
-            pipeline(nodeStream, res, (err) => {
-                if (err) {
-                    console.error('Stream pipeline error:', err);
-                    if (!res.headersSent) {
-                        res.status(500).end('Stream error');
-                    } else {
-                        res.end();
-                    }
-                }
-            });
+            const buffer = Buffer.from(await proxyRes.arrayBuffer());
+            res.end(buffer);
         } else {
             // If body is empty, just close the resource
             res.end();
