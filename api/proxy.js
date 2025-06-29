@@ -23,10 +23,19 @@ export default async function handler(req, res) {
     const finalUrl = baseUrl + path;
 
     try {
-        const fetchHeaders = { ...headers };
-        delete fetchHeaders['host'];
-        delete fetchHeaders['content-length'];
-        delete fetchHeaders['content-encoding'];
+        const blockedHeaders = [
+            'host',
+            'content-length',
+            'content-encoding',
+            'transfer-encoding',
+            'connection',
+        ];
+
+        const fetchHeaders = Object.fromEntries(
+            Object.entries(headers).filter(
+                ([key]) => !blockedHeaders.includes(key.toLowerCase())
+            )
+        );
 
         const proxyRes = await fetch(finalUrl, {
             method,
@@ -48,14 +57,8 @@ export default async function handler(req, res) {
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Headers', '*');
 
-        // Pipe response body directly to client
-        if (proxyRes.body) {
-            const buffer = Buffer.from(await proxyRes.arrayBuffer());
-            res.end(buffer);
-        } else {
-            // If body is empty, just close the resource
-            res.end();
-        }
+        const buffer = Buffer.from(await proxyRes.arrayBuffer());
+        res.end(buffer);
     } catch (err) {
         console.error('Proxy error:', err);
         res.status(500).json({ error: 'Proxy error', details: err.message });
