@@ -1,0 +1,23 @@
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.env
+.env.local
+
+# Vercel build output
+.vercel/
+
+# IDE settings
+.vscode/
+.idea/
+*.swp
+
+# MacOS system files
+.DS_Store
+
+# Logs
+logs/
+*.log
