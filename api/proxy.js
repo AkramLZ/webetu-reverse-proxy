@@ -15,8 +15,7 @@ export default async function handler(req, res) {
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,PATCH,DELETE,OPTIONS');
         res.setHeader('Access-Control-Allow-Headers', '*');
-        res.status(204).end();
-        return;
+        return res.status(204).end();
     }
 
     const path = req.url.replace(/^\/+/, '');
@@ -45,8 +44,17 @@ export default async function handler(req, res) {
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Headers', '*');
 
-        const data = await proxyRes.arrayBuffer();
-        res.send(Buffer.from(data));
+        // Check for content-length or if body exists
+        const contentLength = proxyRes.headers.get('content-length');
+        const hasBody = contentLength !== '0' && proxyRes.status !== 204;
+
+        if (hasBody) {
+            const data = await proxyRes.arrayBuffer();
+            res.send(Buffer.from(data));
+        } else {
+            // If no body, send empty response
+            res.end();
+        }
     } catch (err) {
         console.error('Proxy error:', err);
         res.status(500).json({ error: 'Proxy error', details: err.message });
