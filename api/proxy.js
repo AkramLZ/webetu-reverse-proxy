@@ -24,7 +24,6 @@ export default async function handler(req, res) {
 
     try {
         const fetchHeaders = { ...headers };
-        // Make sure to NOT forward the wrong host
         delete fetchHeaders['host'];
 
         const proxyRes = await fetch(finalUrl, {
@@ -41,18 +40,15 @@ export default async function handler(req, res) {
             res.setHeader(key, value);
         });
 
+        // CORS headers
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Headers', '*');
 
-        // Check for content-length or if body exists
-        const contentLength = proxyRes.headers.get('content-length');
-        const hasBody = contentLength !== '0' && proxyRes.status !== 204;
-
-        if (hasBody) {
-            const data = await proxyRes.arrayBuffer();
-            res.send(Buffer.from(data));
+        // Pipe response body directly to client
+        if (proxyRes.body) {
+            proxyRes.body.pipe(res);
         } else {
-            // If no body, send empty response
+            // If body is empty, just close the resource
             res.end();
         }
     } catch (err) {
