@@ -67,6 +67,7 @@ export default async function handler(req, res) {
 
         // Buffer the full response and send it
         const responseBuffer = Buffer.from(await proxyRes.arrayBuffer());
+        res.setHeader('Content-Length', responseBuffer.length);
         res.end(responseBuffer);
     } catch (err) {
         console.error('Proxy error:', err);
