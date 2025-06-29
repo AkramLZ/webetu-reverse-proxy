@@ -1,6 +1,8 @@
 /**
  * Handle incoming requests to accept CORS
  */
+import getRawBody from 'raw-body';
+
 export const config = {
     api: {
         bodyParser: false
@@ -23,12 +25,14 @@ export default async function handler(req, res) {
     const finalUrl = baseUrl + path;
 
     try {
+        // Filter out problematic headers
         const blockedHeaders = [
             'host',
             'content-length',
             'content-encoding',
             'transfer-encoding',
             'connection',
+            'accept-encoding'
         ];
 
         const fetchHeaders = Object.fromEntries(
@@ -37,28 +41,33 @@ export default async function handler(req, res) {
             )
         );
 
+        // Read request body (for POST/PUT/etc.)
+        const requestBody = ['GET', 'HEAD'].includes(method)
+            ? undefined
+            : await getRawBody(req);
+
+        // Perform the proxy fetch
         const proxyRes = await fetch(finalUrl, {
             method,
             headers: fetchHeaders,
-            body: ['GET', 'HEAD'].includes(method)
-                ? undefined
-                : req,
-            duplex: 'half'
+            body: requestBody,
         });
 
+        // Forward status and headers
         res.status(proxyRes.status);
         proxyRes.headers.forEach((value, key) => {
-            if (key.toLowerCase() !== 'content-encoding' && key.toLowerCase() !== 'transfer-encoding') {
+            if (!['content-encoding', 'transfer-encoding'].includes(key.toLowerCase())) {
                 res.setHeader(key, value);
             }
         });
 
-        // CORS headers
+        // Add CORS headers
         res.setHeader('Access-Control-Allow-Origin', '*');
         res.setHeader('Access-Control-Allow-Headers', '*');
 
-        const buffer = Buffer.from(await proxyRes.arrayBuffer());
-        res.end(buffer);
+        // Buffer the full response and send it
+        const responseBuffer = Buffer.from(await proxyRes.arrayBuffer());
+        res.end(responseBuffer);
     } catch (err) {
         console.error('Proxy error:', err);
         res.status(500).json({ error: 'Proxy error', details: err.message });
