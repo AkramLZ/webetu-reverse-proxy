@@ -25,6 +25,8 @@ export default async function handler(req, res) {
     try {
         const fetchHeaders = { ...headers };
         delete fetchHeaders['host'];
+        delete fetchHeaders['content-length'];
+        delete fetchHeaders['content-encoding'];
 
         const proxyRes = await fetch(finalUrl, {
             method,
@@ -37,7 +39,9 @@ export default async function handler(req, res) {
 
         res.status(proxyRes.status);
         proxyRes.headers.forEach((value, key) => {
-            res.setHeader(key, value);
+            if (key.toLowerCase() !== 'content-encoding' && key.toLowerCase() !== 'transfer-encoding') {
+                res.setHeader(key, value);
+            }
         });
 
         // CORS headers
@@ -46,7 +50,7 @@ export default async function handler(req, res) {
 
         // Pipe response body directly to client
         if (proxyRes.body) {
-            proxyRes.body.pipe(res);
+            await proxyRes.body.pipeTo(res);
         } else {
             // If body is empty, just close the resource
             res.end();
