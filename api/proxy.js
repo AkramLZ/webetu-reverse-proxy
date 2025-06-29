@@ -1,3 +1,5 @@
+import { Readable } from 'stream';
+
 /**
  * Handle incoming requests to accept CORS
  */
@@ -50,7 +52,8 @@ export default async function handler(req, res) {
 
         // Pipe response body directly to client
         if (proxyRes.body) {
-            await proxyRes.body.pipeTo(res);
+            const nodeStream = Readable.fromWeb(proxyRes.body);
+            nodeStream.pipe(res);
         } else {
             // If body is empty, just close the resource
             res.end();
